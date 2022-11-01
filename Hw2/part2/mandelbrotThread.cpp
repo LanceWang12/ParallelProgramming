@@ -1,8 +1,13 @@
-#include <stdio.h>
 #include <thread>
+#include <vector>
 #include <iostream>
-
+#include <stdio.h>
+#include <assert.h>
 #include "CycleTimer.h"
+
+// divide the mandelbrot image in n_task part by row
+// 300 is better than 200
+#define n_task 300
 
 using namespace std;
 
@@ -11,6 +16,12 @@ using namespace std;
 // Specifically, compute the top half of the image in thread 0, and the bottom half of the image in thread 1. 
 // This type of problem decomposition is referred to as spatial decomposition 
 // since different spatial regions of the image are computed by different processors.
+
+// [start, end)
+typedef struct{
+  int start;
+  int end;
+} work_interval;
 
 static inline int mandel(float c_re, float c_im, int count)
 {
@@ -31,25 +42,28 @@ static inline int mandel(float c_re, float c_im, int count)
   return i;
 }
 
-void my_mandelbrotSerial(
+// compute mandelbrot by different interval
+void mandelbrot_divide_by_task(
     float x0, float y0, float x1, float y1,
     int width, int height,
-    int startRow, int endRow,
+    vector<work_interval> task_lst,
     int maxIterations,
     int output[])
 {
   float dx = (x1 - x0) / width;
   float dy = (y1 - y0) / height;
+  int startRow = 0, endRow = 0;
+  for (int work_idx = 0; work_idx < (int)task_lst.size(); work_idx++){
+    startRow = task_lst[work_idx].start;
+    endRow = task_lst[work_idx].end;
+    for (int j = startRow; j < endRow; j++){
+      for (int i = 0; i < width; ++i){
+        float x = x0 + i * dx;
+        float y = y0 + j * dy;
 
-  for (int j = startRow; j < endRow; j++)
-  {
-    for (int i = 0; i < width; ++i)
-    {
-      float x = x0 + i * dx;
-      float y = y0 + j * dy;
-
-      int index = (j * width + i);
-      output[index] = mandel(x, y, maxIterations);
+        int index = (j * width + i);
+        output[index] = mandel(x, y, maxIterations);
+      }
     }
   }
 }
@@ -63,10 +77,12 @@ typedef struct
     unsigned int height;
     int startRow, endRow;
     int maxIterations;
-    int *output; // 8 bytes
+    int *output;
     int threadId;
     int numThreads;
-    // double trans[2]; // for memory padding
+    // record different work_interval[start, end) in the task_lst
+    vector<work_interval> task_lst;
+    double *time; // record execution time
 } WorkerArgs;
 
 //
@@ -88,10 +104,14 @@ void workerThreadStart(WorkerArgs *const args)
     float x0 = args -> x0, y0 = args -> y0;
     float x1 = args -> x1, y1 = args -> y1;
     int width = args -> width, height = args -> height;
-    int startRow = args -> startRow, endRow = args -> endRow;
+    vector<work_interval> task_lst = args -> task_lst;
     int maxIterations = args -> maxIterations;
     int *output = args -> output;
-    my_mandelbrotSerial(x0, y0, x1, y1, width, height, startRow, endRow, maxIterations, output);
+    double startTime = CycleTimer::currentSeconds();
+    mandelbrot_divide_by_task(x0, y0, x1, y1, width, height, task_lst, maxIterations, output);
+    double endTime = CycleTimer::currentSeconds();
+    double duration = endTime - startTime;
+    *(args -> time) = duration;
 }
 
 //
@@ -113,17 +133,15 @@ void mandelbrotThread(
         exit(1);
     }
 
+    // the height of image must be divisible by n_task
+    assert(height % n_task == 0);
     
     // Creates thread objects that do not yet represent a thread.
     std::thread workers[MAX_THREADS];
     WorkerArgs args[MAX_THREADS];
+    double *duration = new double[numThreads];
 
-    // compute y index
-    // cout << x0 << ' ' << x1 << endl;
-    // cout << y0 << ' ' << y1 << endl;
-    // cout << height / 2 << endl;
-    int height_div = height / numThreads;
-    // cout << height << ' ' << numThreads << endl;
+    // Set params which is same in every thread
     for (int i = 0; i < numThreads; i++)
     {
         // TODO FOR PP STUDENTS: You may or may not wish to modify
@@ -133,14 +151,23 @@ void mandelbrotThread(
         args[i].x1 = x1;
         args[i].y0 = y0;
         args[i].y1 = y1;
-        args[i].startRow = i * height_div;
-        args[i].endRow = args[i].startRow + height_div;
         args[i].width = width;
         args[i].height = height;
         args[i].maxIterations = maxIterations;
         args[i].numThreads = numThreads;
         args[i].output = output;
         args[i].threadId = i;
+        args[i].time = &duration[i];
+    }
+
+    
+    int interval = height / n_task; // the interval of an image
+    int idx = 0; // the index for each thread
+    // set tasks for every thread
+    for(int i = 0; i < height; i += interval){
+      work_interval task = {.start = i, .end = i + interval};
+      args[idx % numThreads].task_lst.push_back(task);
+      idx++;
     }
 
     // Spawn the worker threads.  Note that only numThreads-1 std::threads
@@ -158,4 +185,11 @@ void mandelbrotThread(
     {
         workers[i].join();
     }
+    
+    for(int i = 0; i < numThreads; i++){
+        cout << *args[i].time;
+        if(i < numThreads - 1)
+            cout << ", ";
+    }
+    cout << endl;
 }
