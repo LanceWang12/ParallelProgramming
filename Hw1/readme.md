@@ -1,11 +1,3 @@
----
-
-tags: Parallel Programming
-
----
-
-[toc]
-
 # HW1
 310552021 王睿成
 ## Part 1
