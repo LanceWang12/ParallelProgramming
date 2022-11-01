@@ -2,7 +2,11 @@
 
 1. Please see problem explanation in [PP website](https://nycu-sslab.github.io/PP-f22/assignments/HW2/)
 2. Please see my answer in [Hackmd](https://hackmd.io/@KPk5hwaKTO6iNsSn0-6oXw/B1qFOX64i)
+<<<<<<< HEAD
    1. Compute the top half of the image in thread 0, and the bottom half of the image in thread 1
    2. Extend the code to use 2, 3, 4 threads, partitioning the image generation work accordingly 
 
 
+=======
+    1. Compute the top half of the image in thread 0, and the bottom half of the image in thread 1
+>>>>>>> c297ab11978bc11fe80c60a1463c1cb225790ab0
