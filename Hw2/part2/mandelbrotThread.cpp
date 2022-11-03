@@ -100,18 +100,18 @@ void workerThreadStart(WorkerArgs *const args)
     // Of course, you can copy mandelbrotSerial() to this file and 
     // modify it to pursue a better performance.
 
-    printf("Hello world from thread %d\n", args->threadId);
+    // printf("Hello world from thread %d\n", args->threadId);
     float x0 = args -> x0, y0 = args -> y0;
     float x1 = args -> x1, y1 = args -> y1;
     int width = args -> width, height = args -> height;
     vector<work_interval> task_lst = args -> task_lst;
     int maxIterations = args -> maxIterations;
     int *output = args -> output;
-    double startTime = CycleTimer::currentSeconds();
+    // double startTime = CycleTimer::currentSeconds();
     mandelbrot_divide_by_task(x0, y0, x1, y1, width, height, task_lst, maxIterations, output);
-    double endTime = CycleTimer::currentSeconds();
-    double duration = endTime - startTime;
-    *(args -> time) = duration;
+    // double endTime = CycleTimer::currentSeconds();
+    // double duration = endTime - startTime;
+    // *(args -> time) = duration;
 }
 
 //
@@ -186,10 +186,10 @@ void mandelbrotThread(
         workers[i].join();
     }
     
-    for(int i = 0; i < numThreads; i++){
-        cout << *args[i].time;
-        if(i < numThreads - 1)
-            cout << ", ";
-    }
-    cout << endl;
+    // for(int i = 0; i < numThreads; i++){
+    //     cout << *args[i].time;
+    //     if(i < numThreads - 1)
+    //         cout << ", ";
+    // }
+    // cout << endl;
 }
