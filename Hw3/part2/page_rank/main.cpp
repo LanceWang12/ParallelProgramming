@@ -56,6 +56,7 @@ int main(int argc, char** argv) {
 
     printf("Loading graph...\n");
     if (USE_BINARY_GRAPH) {
+        // std::cout << "hahahahahah" << std::endl;
       g = load_graph_binary(graph_filename.c_str());
     } else {
         g = load_graph(argv[1]);
@@ -68,6 +69,7 @@ int main(int argc, char** argv) {
     printf("Graph stats:\n");
     printf("  Edges: %d\n", g->num_edges);
     printf("  Nodes: %d\n", g->num_nodes);
+    // print_graph(g);
 
     //If we want to run on all threads
     if (thread_count <= -1)

@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+
+# graph in Hw3 part2
+*.graph

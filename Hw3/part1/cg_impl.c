@@ -1,4 +1,5 @@
 #include "cg_impl.h"
+#define THREAD_NUM 4
 //---------------------------------------------------------------------
 // Floaging point arrays here are named as in spec discussion of
 // CG algorithm
@@ -22,6 +23,7 @@ void conj_grad(int colidx[],
     //---------------------------------------------------------------------
     // Initialize the CG algorithm:
     //---------------------------------------------------------------------
+    // #pragma omp parallel for num_threads(THREAD_NUM)
     for (j = 0; j < naa + 1; j++)
     {
         q[j] = 0.0;
@@ -34,6 +36,7 @@ void conj_grad(int colidx[],
     // rho = r.r
     // Now, obtain the norm of r: First, sum squares of r elements locally...
     //---------------------------------------------------------------------
+    // #pragma omp parallel for num_threads(THREAD_NUM)
     for (j = 0; j < lastcol - firstcol + 1; j++)
     {
         rho = rho + r[j] * r[j];
@@ -57,6 +60,7 @@ void conj_grad(int colidx[],
         //       unrolled-by-two version is some 10% faster.
         //       The unrolled-by-8 version below is significantly faster
         //       on the Cray t3d - overall speed of code is 1.5 times faster.
+        #pragma omp parallel for num_threads(THREAD_NUM)
         for (j = 0; j < lastrow - firstrow + 1; j++)
         {
             sum = 0.0;
@@ -66,11 +70,12 @@ void conj_grad(int colidx[],
             }
             q[j] = sum;
         }
-
         //---------------------------------------------------------------------
         // Obtain p.q
         //---------------------------------------------------------------------
+        
         d = 0.0;
+        // #pragma omp parallel for num_threads(THREAD_NUM)
         for (j = 0; j < lastcol - firstcol + 1; j++)
         {
             d = d + p[j] * q[j];
@@ -126,6 +131,7 @@ void conj_grad(int colidx[],
     // The partition submatrix-vector multiply
     //---------------------------------------------------------------------
     sum = 0.0;
+    #pragma omp parallel for num_threads(THREAD_NUM)
     for (j = 0; j < lastrow - firstrow + 1; j++)
     {
         d = 0.0;
@@ -317,14 +323,16 @@ void sparse(double a[],
     //---------------------------------------------------------------------
     size = 1.0;
     ratio = pow(rcond, (1.0 / (double)(n)));
-
+    // #pragma omp parallel for num_threads(THREAD_NUM)
     for (i = 0; i < n; i++)
     {
+        // #pragma omp parallel for num_threads(THREAD_NUM)
         for (nza = 0; nza < arow[i]; nza++)
         {
             j = acol[i][nza];
 
             scale = size * aelt[i][nza];
+            // #pragma omp parallel for num_threads(THREAD_NUM)
             for (nzrow = 0; nzrow < arow[i]; nzrow++)
             {
                 jcol = acol[i][nzrow];
@@ -340,6 +348,7 @@ void sparse(double a[],
                 }
 
                 cont40 = false;
+                
                 for (k = rowstr[j]; k < rowstr[j + 1]; k++)
                 {
                     if (colidx[k] > jcol)
