@@ -33,3 +33,6 @@
 
 # graph in Hw3 part2
 *.graph
+
+# Mac
+.DS_Store
